@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from graphs import run_analysis
 
 df = pd.read_csv("dataset.csv")
 df = df.rename(columns={'Unnamed: 0': 'id'})
@@ -22,3 +23,7 @@ df_mask = pd.DataFrame(np.random.rand(
 df[columns_to_mask] = df[columns_to_mask].mask(df_mask)
 
 df.to_csv("dataset_with_missing.csv", index=False)
+
+if __name__ == "__main__":
+    run_analysis(show=True)   # show=True żeby wyświetlało wykresy
+
