@@ -34,7 +34,7 @@ def analyze_histograms(df, cols, out_csv="wyniki/hist_summary.csv"):
 
 # --- główna funkcja ---
 def run_analysis(show=False):
-    df = pd.read_csv("dataset.csv")
+    df = pd.read_csv("dataset_imputed.csv")
     if "Unnamed: 0" in df.columns:
         df = df.rename(columns={"Unnamed: 0": "id"})
     if "duration_ms" in df.columns:
