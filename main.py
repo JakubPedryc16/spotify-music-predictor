@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from graphs import run_analysis
+from src.graphs import run_analysis
 
 df = pd.read_csv("dataset.csv")
 df = df.rename(columns={'Unnamed: 0': 'id'})
@@ -13,17 +13,19 @@ print(df[df.isnull().any(axis=1)])
 
 columns_to_mask = df.columns.difference(['id'])
 
+n_rows = df.shape[0]
+n_cols = len(columns_to_mask)
+random_matrix = np.random.rand(n_rows, n_cols)
 
-df_mask = pd.DataFrame(np.random.rand(
-    df.shape[0],
-    len(columns_to_mask)) < 0.1,
+df_mask = pd.DataFrame(
+    random_matrix < 0.1,
     columns=columns_to_mask
 )
 
 df[columns_to_mask] = df[columns_to_mask].mask(df_mask)
 
-df.to_csv("dataset_with_missing.csv", index=False)
+df.to_csv("data/original.csv", index=False)
 
 if __name__ == "__main__":
-    run_analysis(show=True)   # show=True żeby wyświetlało wykresy
+    run_analysis(show=True) 
 
