@@ -62,6 +62,9 @@ def fill_missing_data(filling_method, name=""):
         unique_genres = df['track_genre'].dropna().unique()
         genre_map = {genre: i for i, genre in enumerate(unique_genres)}
         df['track_genre'] = df['track_genre'].map(genre_map)
+    
+    if 'track_id' in df.columns: 
+        df = df.groupby('track_id', as_index=False).first()
 
     if 'explicit' in df.columns:
         df['explicit'] = df['explicit'].astype(float)
@@ -80,4 +83,7 @@ def fill_missing_data(filling_method, name=""):
 
 
 if __name__ == "__main__":
+    fill_missing_data(impute_mean, "_mean")
+    fill_missing_data(impute_median, "_median")
+    fill_missing_data(knn_impute, "_knn")
     fill_missing_data(impute_auto_sklearn, "_auto")
