@@ -10,8 +10,6 @@ def impute_auto_sklearn(df, columns):
     df_imputed.loc[:, columns] = imputer.fit_transform(df_imputed[columns])
     return df_imputed
 
-
-
 def knn_impute(df, columns, n_neighbors=5):
     df_imputed = df.copy()
     data = df[columns].to_numpy()
