@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from src.graphs import run_analysis
 
+
 df = pd.read_csv("data/data_original.csv")
 df = df.rename(columns={'Unnamed: 0': 'id'})
 

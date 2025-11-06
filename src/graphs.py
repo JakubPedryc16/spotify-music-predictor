@@ -1,109 +1,149 @@
-# graphs.py
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+# graphs.py  — tylko wykresy dla 8 zbiorów (4 imputacje × 2 skalowania)
+import os
 from pathlib import Path
 
-# --- analiza histogramów ---
-def analyze_histograms(df, cols, out_csv="wyniki/hist_summary.csv"):
-    rows = []
-    for col in cols:
-        data = df[col].dropna()
-        if data.empty:
-            continue
-        if col == "duration_min" and data.max() > 20:
-            data = data.clip(upper=np.percentile(data, 99))
-        rows.append({
-            "feature": col,
-            "count": int(data.count()),
-            "mean": round(data.mean(), 4),
-            "median": round(data.median(), 4),
-            "std": round(data.std(), 4),
-            "min": round(data.min(), 4),
-            "p25": round(np.percentile(data, 25), 4),
-            "p75": round(np.percentile(data, 75), 4),
-            "max": round(data.max(), 4),
-            "skew": round(data.skew(), 4),
-            "kurtosis": round(data.kurtosis(), 4)
-        })
-    summary = pd.DataFrame(rows)
-    summary.to_csv(out_csv, index=False)
-    print("\n✅ Analiza histogramów (opis statystyczny):")
-    print(summary)
-    print(f"\nZapisano: {out_csv}")
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from typing import Optional
 
-# --- główna funkcja ---
-def run_analysis(show=False):
-    df = pd.read_csv("data/data_auto.csv")
+
+
+# --- ustawienia globalne
+sns.set(context="notebook", style="whitegrid")
+OUT_DIR = Path("wyniki")
+
+
+def _ensure_duration_min(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    if "duration_ms" in df.columns and "duration_min" not in df.columns:
+        df["duration_min"] = df["duration_ms"] / 60000.0
+    return df
+
+
+def _numeric_cols(df: pd.DataFrame) -> list:
+    cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    # opcjonalnie usuń identyfikatory
+    for drop in ["id"]:
+        if drop in cols:
+            cols.remove(drop)
+    return cols
+
+
+def plot_pairplot(df: pd.DataFrame, out_path: Path, max_rows: int = 2000) -> None:
+    """Pairplot z próbkowaniem (żeby nie zalać wykresu)."""
+    df_num = df[_numeric_cols(df)].dropna()
+    if df_num.empty:
+        return
+    if len(df_num) > max_rows:
+        df_num = df_num.sample(max_rows, random_state=42)
+    g = sns.pairplot(df_num, corner=True, diag_kind="hist", plot_kws=dict(alpha=0.5, s=10))
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    g.savefig(out_path, dpi=150)
+    plt.close("all")
+
+
+def plot_corr_heatmaps(df: pd.DataFrame, out_base: Path) -> None:
+    """Heatmapy korelacji (Pearson i Spearman)."""
+    df_num = df[_numeric_cols(df)]
+    if df_num.empty:
+        return
+
+    for method in ["pearson", "spearman"]:
+        corr = df_num.corr(method=method)
+        plt.figure(figsize=(12, 10))
+        sns.heatmap(corr, cmap="coolwarm", center=0, square=False, cbar=True)
+        plt.title(f"Macierz korelacji ({method.capitalize()})")
+        plt.tight_layout()
+        out_file = out_base.parent / f"{out_base.name}_{method}.png"
+        out_file.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(out_file, dpi=150)
+        plt.close()
+
+
+def plot_boxplots(df: pd.DataFrame, out_path: Path) -> None:
+    """Boxploty wybranych cech (wizualna analiza odstających)."""
+    df = df.copy()
+    df = _ensure_duration_min(df)
+    selected = [
+        "popularity", "tempo", "energy", "danceability",
+        "loudness", "speechiness", "acousticness",
+        "instrumentalness", "liveness", "valence", "duration_min"
+    ]
+    selected = [c for c in selected if c in df.columns]
+    if not selected:
+        return
+
+    n = len(selected)
+    cols = 3
+    rows = int(np.ceil(n / cols))
+    plt.figure(figsize=(5 * cols, 3.8 * rows))
+    for i, col in enumerate(selected, 1):
+        plt.subplot(rows, cols, i)
+        sns.boxplot(x=df[col], color="skyblue")
+        plt.title(col)
+        plt.xlabel("")
+        plt.grid(True, axis="x", alpha=0.2)
+    plt.suptitle("Boxploty wybranych cech", y=1.02, fontsize=14)
+    plt.tight_layout()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close()
+
+
+def _load_df(path: Path) -> Optional[pd.DataFrame]:
+    if not path.exists():
+        print(f"⏭️  Pomijam — brak pliku: {path}")
+        return None
+    df = pd.read_csv(path)
     if "Unnamed: 0" in df.columns:
         df = df.rename(columns={"Unnamed: 0": "id"})
-    if "duration_ms" in df.columns:
-        df["duration_min"] = df["duration_ms"] / 60000
+    df = _ensure_duration_min(df)
+    return df
 
-    Path("wyniki").mkdir(exist_ok=True)
 
-    # --- ANALIZA (Pandas) ---
-    print("\n==== ANALIZA DANYCH (PANDAS) ====")
+def run_analysis(show: bool = False) -> None:
+    """
+    Generuje wykresy dla 8 zbiorów:
+      data_mean.csv, data_median.csv, data_knn.csv, data_auto.csv
+      + ich wersje _minmax.csv i _standardized.csv
+    Pliki są spodziewane w katalogu ./data
+    """
+    OUT_DIR.mkdir(exist_ok=True)
 
-    print("\nTop 10 gatunków wg średniej popularności:")
-    top_genres = df.groupby("track_genre")["popularity"].mean().sort_values(ascending=False).head(10)
-    print(top_genres)
-    top_genres.to_csv("wyniki/top_genres.csv")
+    base_names = ["data_mean", "data_median", "data_knn", "data_auto"]
+    variants = ["", "_minmax", "_standardized"]  # "" to wersja bez skalowania (po imputacji)
 
-    print("\nTop 10 najczęstszych artystów:")
-    top_artists = df["artists"].dropna().str.split(";").explode().str.strip().value_counts().head(10)
-    print(top_artists)
-    top_artists.to_csv("wyniki/top_artists.csv")
+    for base in base_names:
+        for var in variants:
+            in_path = Path("data") / f"{base}{var}.csv"
+            df = _load_df(in_path)
+            if df is None:
+                continue
 
-    print("\nPorównanie popularności: explicit vs non-explicit:")
-    explicit_stats = df.groupby("explicit")["popularity"].mean()
-    print(explicit_stats)
-    explicit_stats.to_csv("wyniki/explicit_vs_popularity.csv")
+            tag = f"{base}{var}" if var else base
+            save_dir = OUT_DIR / tag
+            save_dir.mkdir(parents=True, exist_ok=True)
 
-    # --- ZAawansowany wykres ---
-    print("\n==== WYKRES SCATTER ====")
-    scatter_df = df[["energy", "danceability", "popularity", "loudness"]].dropna()
-    scatter_df = scatter_df.sample(min(40000, len(scatter_df)), random_state=42)
+            print(f"\n📊 Generuję wykresy dla: {in_path}")
 
-    sizes = 30 + (scatter_df["loudness"] - scatter_df["loudness"].min()) * 5
+            # 1) Pairplot
+            plot_pairplot(df, save_dir / "pairplot.png")
 
-    plt.figure(figsize=(9, 6))
-    scatter = plt.scatter(
-        scatter_df["energy"], scatter_df["danceability"],
-        c=scatter_df["popularity"], s=sizes, cmap="viridis", alpha=0.5
-    )
-    plt.colorbar(scatter, label="Popularity")
-    plt.xlabel("Energy")
-    plt.ylabel("Danceability")
-    plt.title("Energy vs Danceability (kolor=popularność, wielkość=loudness)")
-    plt.savefig("wyniki/advanced_scatter.png")
-    if show:
-        plt.show()
-    plt.close()
+            # 2) Heatmapy korelacji
+            plot_corr_heatmaps(df, save_dir / "corr_heatmap")
 
-    # --- Histogramy ---
-    print("\n==== HISTOGRAMY ====")
-    hist_cols = ["popularity", "tempo", "energy", "danceability", "duration_min", "loudness"]
-    plt.figure(figsize=(12, 8))
+            # 3) Boxploty
+            plot_boxplots(df, save_dir / "boxplots.png")
 
-    for i, col in enumerate(hist_cols):
-        plt.subplot(2, 3, i + 1)
-        plt.hist(df[col].dropna(), bins=40, color="blue", alpha=0.7)
-        plt.title(f"Histogram: {col}")
-        plt.xlabel(col)
-        plt.ylabel("Ilość wystąpień")
+            if show:
+                # nic nie pokazujemy na żywo (ciężkie wykresy) – trzymamy tylko zapisy
+                pass
 
-    plt.tight_layout()
-    plt.savefig("wyniki/histograms.png")
-    if show:
-        plt.show()
-    plt.close()
-
-    # --- ANALIZA histogramów ---
-    analyze_histograms(df, hist_cols)
-
-    print("\n✅ Analiza zakończona. Wyniki zapisano w folderze 'wyniki/'.")
+    print("\n✅ Gotowe. Wszystkie wykresy zapisane w folderze 'wyniki/'.")
+    print("Struktura: wyniki/<nazwa_zbioru>/{pairplot.png, corr_heatmap_*.png, boxplots.png}")
 
 
 if __name__ == "__main__":
-    run_analysis(show=True)
+    run_analysis(show=False)
