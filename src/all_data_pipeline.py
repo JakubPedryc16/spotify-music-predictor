@@ -47,6 +47,7 @@ def run_pipeline(file_path):
         "knn": trained_models["knn"]
     }
 
+    #V1 gives terrible results and can be commented I guess
     voting_model_v1 = get_voting(simple_models_v1)
     voting_model_v1.fit(X_train, y_train)
     stacking_model_v1 = get_stacking(simple_models_v1, y_train)
@@ -67,6 +68,7 @@ def run_pipeline(file_path):
         "stacking_V2_nb_knn": stacking_model_v2,
     }
     
+    #These are only for the stack and vote
     excluded_models = ["nb", "perceptron"] 
 
     for name, model in models_to_evaluate.items():

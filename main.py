@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
-from src.pipeline import run_pipeline
+from all_data_pipeline import run_pipeline
 from src.graphs import run_analysis
 
 
