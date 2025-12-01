@@ -1,7 +1,7 @@
 import numpy as np
 
-def manual_split(X, y, test_ratio=0.2, seed=42):
-    np.random.seed(seed)
+def manual_split(X, y, test_ratio=0.2, random_state=42):
+    np.random.seed(random_state)
     
     X = np.asarray(X)
     y = np.asarray(y)
