@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-
+import json
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
 
@@ -39,12 +39,10 @@ def knn_impute(df, columns, n_neighbors=5):
     df_imputed[columns] = data
     return df_imputed
 
-
 def impute_mean(df, columns):
     for col in columns:
         df[col] = df[col].fillna(df[col].mean())
     return df
-
 
 def impute_median(df, columns):
     for col in columns:
@@ -58,30 +56,35 @@ def fill_missing_data(filling_method, name=""):
 
     if 'track_genre' in df.columns:
         unique_genres = df['track_genre'].dropna().unique()
-        genre_map = {genre: i for i, genre in enumerate(unique_genres)}
-        df['track_genre'] = df['track_genre'].map(genre_map)
-    
+        genre_to_int = {genre: i for i, genre in enumerate(unique_genres)}
+        int_to_genre = {i: genre for i, genre in enumerate(unique_genres)}
+        
+        df['track_genre'] = df['track_genre'].map(genre_to_int)
+        
+        with open(f"data/genre_map{name}.json", 'w', encoding='utf-8') as f:
+            json.dump(int_to_genre, f, ensure_ascii=False)
+
     if 'track_id' in df.columns: 
-        df = df.groupby('track_id', as_index=False).first()
+        df = df.groupby('track_id', as_index=False).first() 
 
     if 'explicit' in df.columns:
         df['explicit'] = df['explicit'].astype(float)
 
-    columns_to_impute = df.select_dtypes(include=[np.number]).columns.difference(['id'])
+    columns_to_impute = df.select_dtypes(include=[np.number]).columns.difference(['id', 'track_genre'])
     df = filling_method(df, columns_to_impute)
-
-    int_columns = ['key', 'mode', 'time_signature', 'track_genre']
+    
+    int_columns = ['key', 'mode', 'time_signature', 'track_genre'] 
     for col in int_columns:
         if col in df.columns:
-            df[col] = df[col].round().astype(int)
+            # POPRAWKA BŁĘDU: Użycie fillna(0) przed konwersją na int
+            df[col] = df[col].fillna(0).round().astype(int) 
 
     df.to_csv(f"data/data{name}.csv", index=False)
-    print(f"Plik zapisany jako data{name}.csv")
-
+    print(f"Plik zapisany jako data{name}.csv i słownik mapujący jako genre_map{name}.json")
 
 
 if __name__ == "__main__":
     fill_missing_data(impute_mean, "_mean")
     fill_missing_data(impute_median, "_median")
-    fill_missing_data(knn_impute, "_knn")
+    #fill_missing_data(knn_impute, "_knn")
     fill_missing_data(impute_auto_sklearn, "_auto")
