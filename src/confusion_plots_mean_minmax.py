@@ -19,7 +19,7 @@ from src.models.manual_metrics import accuracy, precision, recall, f1
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
 
-OUT_DIR = Path("wyniki") / "confusion_data_mean_minmax"
+OUT_DIR = Path("results") / "confusion_data_mean_minmax"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 sns.set(context="notebook", style="whitegrid")

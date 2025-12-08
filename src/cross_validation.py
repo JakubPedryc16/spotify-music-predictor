@@ -12,7 +12,7 @@ from src.models.manual_metrics import accuracy, precision, recall, f1
 RANDOM_SEED = 42
 np.random.seed(RANDOM_SEED)
 
-OUT_DIR = Path("wyniki") / "cross_validation_manual"
+OUT_DIR = Path("results") / "cross_validation_manual"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 N_SPLITS = 5

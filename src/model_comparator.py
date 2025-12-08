@@ -62,6 +62,6 @@ def compare_data_variants_from_multiple_csv(folder_path):
     print(df_sorted_variants[['data_variant', 'Composite_Score', 'accuracy', 'precision', 'recall', 'f1']].to_string(index=False, float_format="%.4f"))
 
 
-RESULTS_FOLDER = './model_results/' 
+RESULTS_FOLDER = 'model_results/' 
 
 compare_data_variants_from_multiple_csv(RESULTS_FOLDER)
