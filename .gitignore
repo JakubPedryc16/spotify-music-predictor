@@ -209,3 +209,7 @@ __marimo__/
 *.csv
 venv
 *.png
+
+prediction_visualisation/
+optimization_results/
+wyniki/
