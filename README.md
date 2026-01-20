@@ -1,7 +1,5 @@
 # Spotify Tracks Genre Classification
 
-# Spotify Tracks Genre Classification
-
 ![Python](https://img.shields.io/badge/python-3.13.7-blue.svg?style=flat&logo=python&logoColor=white)
 ![Scikit-Learn](https://img.shields.io/badge/scikit--learn-1.7.2-orange.svg?style=flat&logo=scikit-learn)
 ![XGBoost](https://img.shields.io/badge/XGBoost-3.1.2-green.svg?style=flat)
